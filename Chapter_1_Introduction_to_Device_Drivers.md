@@ -1,5 +1,4 @@
 # LDD3 Chapter 1 Notes
-## Dominick Ropella Vanderbilt University 2020
 
 ## Brief Overview:
 This book consists of 18 chapters, each of which will be covered in this note set. The book covers up to linux kernel version 2.6.10, which was released 12/25/2004. This is really old, and the most recent version of the linux kernel as of January 2020 is the 5.4.13 kernel. Many important changes have been made over the years, and this note set will attempt to add in as much new detail as possible. 
