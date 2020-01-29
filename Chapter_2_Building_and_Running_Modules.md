@@ -1,5 +1,4 @@
 # LDD3 Chapter 2 Notes
-## Dominick Ropella Vanderbilt University 2020
 
 ## Chapter 2. Building and Running Modules
 
