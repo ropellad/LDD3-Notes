@@ -492,3 +492,6 @@ int printk(const char * fmt, ...);
 
 Questions:
 What is an ELF section?
+Standard file format with header and section headers.
+Can use the ELF reader readelf to get info about executables
+Look up weak and strong symbols - when building things and the linker knows which object files to combine. It resolves conflicts by choosing the first one. 
