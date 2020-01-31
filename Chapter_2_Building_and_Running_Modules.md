@@ -192,6 +192,8 @@ Different Licenses Recognized:
 
 Unless your module is specifically marked as under a free license, it is assumed proprietary and the kernel is then "tainted." Don't do this. Nobody likes a tainted kernel. 
 
+There is a newer license that I will be using: the Dual MIT/GPL license. I don't want to certify any software I write, but I want everyone else to be able to use it for free. It also needs the GPL license because it is derivative work of the kernel, which is under the GPLv2 license I believe. 
+
 Other descriptive definitions:
 - MODULE_AUTHOR - stating who wrote the module
 - MODULE_DESCRIPTION - a human-readable statement of what the module does
@@ -491,4 +493,4 @@ int printk(const char * fmt, ...);
 What is an ELF section?
 
 ELF stands for Executable and Linkable Format. It is a standard file format for executable files, object code, shared libraries, and core dumps. 
-In Linux, we can use the ELF reader `readelf` to get info about executables. It is useful for telling us about parameter descriptions that we are inputting to the kernel module. It will also tell us things like the symbols being used by the module, and if these symbols come directly from the kernel symbol library. 
+In Linux, we can use the ELF reader `readelf` to get info about executables. It is useful for telling us about parameter descriptions that we are inputting to the kernel module. It will also tell us things like the symbols being used by the module, and if these symbols come directly from the kernel symbol table. 
