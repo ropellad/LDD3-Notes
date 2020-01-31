@@ -408,9 +408,7 @@ Quick Reference:
 
 ```
 insmod
-
 modprobe
-
 rmmod
   User-space utilities that load modules into the running kernels and remove them.
 
