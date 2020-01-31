@@ -131,8 +131,7 @@ default:
 endif
 ```
 
-The make file is read twice on a typical build.
-# GO OVER THIS ^^^
+The make file is read twice on a typical build - but not in the way you might think. The first run sets up the kernel directory, while the second run uses the Makefile contained within the kernel - NOT this make file. Otherwise this loop would go on forever making the same thing over and over again. 
 
 ### Loading and Unloading Modules
 
@@ -489,9 +488,9 @@ module_param(variable, type, perm);
 int printk(const char * fmt, ...);
   The analogue of printf for kernel code.
 ```
+### Bonus: Side Notes
 
-Questions:
 What is an ELF section?
-Standard file format with header and section headers.
-Can use the ELF reader readelf to get info about executables
-Look up weak and strong symbols - when building things and the linker knows which object files to combine. It resolves conflicts by choosing the first one. 
+
+ELF stands for Executable and Linkable Format. It is a standard file format for executable files, object code, shared libraries, and core dumps. 
+In Linux, we can use the ELF reader `readelf` to get info about executables. It is useful for telling us about parameter descriptions that we are inputting to the kernel module. It will also tell us things like the symbols being used by the module, and if these symbols come directly from the kernel symbol library. 
