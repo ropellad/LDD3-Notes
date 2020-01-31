@@ -90,7 +90,6 @@ A device that can be accessed as a stream of bytes (like a file). A char driver 
 #### 2. Block Devices
 
 A block device is a device that can host a filesystem. These are also accessed by filesystem nodes in the <i>/dev</i> directory. In Unix, they can usually only handle I/O operations that transfer one or more whole blocks, which may be 512 bytes in length. In Linux, they allow an application to read/write a block like a char device. This means that for Linux, char and block devices only differ in how they are managed internally by the kernel. They have completely different interface to the kernel than char drivers. 
-# *review this difference^^^*
 
 #### 3. Network Interfaces
 
@@ -111,4 +110,5 @@ Any security check in the system is enforced by kernel code. Security is a polic
 
 Odd numbered kernels (2.7.x) are not stable. They are short lived development versions.
 Even numbered kernels (2.6.x) are stable and should be used for long-term development. 
+This is no longer true! Linux 5.5 is stable, just like 5.4 and 5.3. Don't pay attention to the even/odd numbers anymore.
 
