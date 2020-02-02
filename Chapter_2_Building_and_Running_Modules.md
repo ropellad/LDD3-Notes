@@ -131,8 +131,7 @@ default:
 endif
 ```
 
-The make file is read twice on a typical build.
-# GO OVER THIS ^^^
+The make file is read twice on a typical build - but not in the way you might think. The first run sets up the kernel directory, while the second run uses the Makefile contained within the kernel - NOT this make file. Otherwise this loop would go on forever making the same thing over and over again. 
 
 ### Loading and Unloading Modules
 
@@ -192,6 +191,8 @@ Different Licenses Recognized:
 - Proprietary
 
 Unless your module is specifically marked as under a free license, it is assumed proprietary and the kernel is then "tainted." Don't do this. Nobody likes a tainted kernel. 
+
+There is a newer license that I will be using: the Dual MIT/GPL license. I don't want to certify any software I write, but I want everyone else to be able to use it for free. It also needs the GPL license because it is derivative work of the kernel, which is under the GPLv2 license I believe. 
 
 Other descriptive definitions:
 - MODULE_AUTHOR - stating who wrote the module
@@ -409,9 +410,7 @@ Quick Reference:
 
 ```
 insmod
-
 modprobe
-
 rmmod
   User-space utilities that load modules into the running kernels and remove them.
 
@@ -489,9 +488,9 @@ module_param(variable, type, perm);
 int printk(const char * fmt, ...);
   The analogue of printf for kernel code.
 ```
+### Bonus: Side Notes
 
-Questions:
 What is an ELF section?
-Standard file format with header and section headers.
-Can use the ELF reader readelf to get info about executables
-Look up weak and strong symbols - when building things and the linker knows which object files to combine. It resolves conflicts by choosing the first one. 
+
+ELF stands for Executable and Linkable Format. It is a standard file format for executable files, object code, shared libraries, and core dumps. 
+In Linux, we can use the ELF reader `readelf` to get info about executables. It is useful for telling us about parameter descriptions that we are inputting to the kernel module. It will also tell us things like the symbols being used by the module, and if these symbols come directly from the kernel symbol table. 
