@@ -602,9 +602,11 @@ ssize_t (*writev) (struct file *filp, const struct iovec *iov,
 Each iovec describes one chunk of data to be transferred; it starts at iov_base in user space and is iov_len bytes long. The count parameter tells the method how many iovec structures there are. These structures are created by the application, but the kernel copies them into kernel space before calling the driver.
 
 ### Linux 5.X Char Driver
-Since I could not get scull to work, I went with another online tutorial here:
-
+Since I could not get scull to work, I went with another online tutorial here: 
+[Simple Linux character device driver. – Oleg Kutkov personal blog](https://olegkutkov.me/2018/03/14/simple-linux-character-device-driver/) 
 
 Questions:
 What is a quantum and quantum set?
+Review inode and ioctl
+Can I write something to the char driver, then read the same message it later?
 
