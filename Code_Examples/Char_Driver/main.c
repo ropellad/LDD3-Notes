@@ -87,17 +87,19 @@ static int __init dom_chardev_init(void)
     return 0;
 }
 
-// How can we access dev_major if it was created in the __init function?
+// Meant only for __exit when closing the driver
 static void __exit dom_chardev_exit(void)
 {
     int i;
 
+    // Destroy the devices and print a message saying so
     for (i = 0; i < MAX_DEVICES; i++) {
         device_destroy(dom_chardev_class, MKDEV(dev_major, i));
         //print that devices have started
         printk("Successfully destroyed DOMCHARDEV-(%d, %d)\n", dev_major, i);
     }
 
+    // Unregister the class, then destroy it
     class_unregister(dom_chardev_class);
     class_destroy(dom_chardev_class);
 
@@ -107,22 +109,26 @@ static void __exit dom_chardev_exit(void)
 
 static int dom_chardev_open(struct inode *inode, struct file *file)
 {
+    // Simply print that the device has been opened
     printk("DOMCHARDEV-%d: Device open\n", MINOR(file->f_path.dentry->d_inode->i_rdev));
     return 0;
 }
 
 static int dom_chardev_release(struct inode *inode, struct file *file)
 {
+    // Simply print that the device has been closed
     printk("DOMCHARDEV-%d: Device close\n", MINOR(file->f_path.dentry->d_inode->i_rdev));
     return 0;
 }
 
 static long dom_chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
+    // When is ioctl used?
     printk("DOMCHARDEV-%d: Device ioctl\n", MINOR(file->f_path.dentry->d_inode->i_rdev));
     return 0;
 }
 
+// read function for the fops struct. Does __user denote the buffer is sent to user space?
 static ssize_t dom_chardev_read(struct file *file, char __user *buf, size_t count, loff_t *offset)
 {
     uint8_t *data = "Hello from the kernel world! This is Dom's char device!\n";
@@ -130,21 +136,27 @@ static ssize_t dom_chardev_read(struct file *file, char __user *buf, size_t coun
 
     printk("Reading device number: (%d, %d)\n", dev_major, MINOR(file->f_path.dentry->d_inode->i_rdev));
 
+    // Saturate count to data length if needed (Why?)
     if (count > datalen) {
         count = datalen;
     }
 
+    // If the copy of data fails, return the EFault. The copy_to_user should also give the user the data
     if (copy_to_user(buf, data, count)) {
         return -EFAULT;
     }
 
+    // This should return the number of bytes transferred to the read
     return count;
 }
 
 static ssize_t dom_chardev_write(struct file *file, const char __user *buf, size_t count, loff_t *offset)
 {
-    size_t maxdatalen = 30, ncopied;
-    uint8_t databuf[maxdatalen];
+    size_t maxdatalen = 10;
+    unsigned long ncopied;
+    uint8_t databuf[10];
+    
+    printk("Size of count: %zd\n", count);
 
     printk("Writing device number: (%d, %d)\n", dev_major, MINOR(file->f_path.dentry->d_inode->i_rdev));
 
@@ -153,11 +165,13 @@ static ssize_t dom_chardev_write(struct file *file, const char __user *buf, size
     }
 
     ncopied = copy_from_user(databuf, buf, maxdatalen);
+    printk("Value of ncopied: %zd\n", ncopied);
 
     if (ncopied == 0) {
         printk("Copied %zd bytes from the user\n", maxdatalen);
-    } else {
-        printk("Could't copy %zd bytes from the user\n", ncopied);
+    } 
+    else {
+        printk("Unable to copy %ld bytes from the user\n", ncopied);
     }
 
     databuf[maxdatalen] = 0;
@@ -167,8 +181,8 @@ static ssize_t dom_chardev_write(struct file *file, const char __user *buf, size
     return count;
 }
 
-MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Dom");
-
 module_init(dom_chardev_init);
 module_exit(dom_chardev_exit);
+
+MODULE_LICENSE("Dual MIT/GPL");
+MODULE_AUTHOR("Dom");
