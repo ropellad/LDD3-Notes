@@ -471,3 +471,6 @@ This runs on a virtual machine implemented on the Linux system call interface. I
 
 Questions:
 What is a spinlock? How does it function?
+
+From Wikipedia:
+In software engineering, a spinlock is a lock which causes a thread trying to acquire it to simply wait in a loop ("spin") while repeatedly checking if the lock is available. Since the thread remains active but is not performing a useful task, the use of such a lock is a kind of busy waiting.
