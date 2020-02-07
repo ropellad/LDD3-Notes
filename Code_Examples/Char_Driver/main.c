@@ -152,30 +152,33 @@ static ssize_t dom_chardev_read(struct file *file, char __user *buf, size_t coun
 
 static ssize_t dom_chardev_write(struct file *file, const char __user *buf, size_t count, loff_t *offset)
 {
+	//I had to play with a few magic +1 and -1 operators to get the behavior right. May need some help on this...
     size_t maxdatalen = 10;
     unsigned long ncopied;
-    uint8_t databuf[10];
+    uint8_t databuf[11];
+    size_t overflow = 0;
     
-    printk("Size of count: %zd\n", count);
+    //printk("Size of count: %zd\n", count);
 
     printk("Writing device number: (%d, %d)\n", dev_major, MINOR(file->f_path.dentry->d_inode->i_rdev));
 
-    if (count < maxdatalen) {
+	//truncate maxdatalen if the bytes to send is less than maxdatalen
+    if (maxdatalen > count) {
         maxdatalen = count;
+    }
+    //Warn if too much data is trying to be written
+    else if (maxdatalen < (count-1)){
+    	overflow = count - maxdatalen;
+    	printk("Too big of an input. Unable to copy %ld bytes from the user\n", (overflow-1));
     }
 
     ncopied = copy_from_user(databuf, buf, maxdatalen);
-    printk("Value of ncopied: %zd\n", ncopied);
-
-    if (ncopied == 0) {
-        printk("Copied %zd bytes from the user\n", maxdatalen);
-    } 
-    else {
-        printk("Unable to copy %ld bytes from the user\n", ncopied);
-    }
-
+    
+    //Print the number of copied bytes from the user
+    printk("Copied %zd bytes from the user\n", maxdatalen);
     databuf[maxdatalen] = 0;
 
+	//Print the copied bytes from the user
     printk("Data from the user: %s\n", databuf);
 
     return count;
