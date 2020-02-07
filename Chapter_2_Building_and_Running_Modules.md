@@ -10,7 +10,7 @@ I will work these examples with the standard 5.x version of the linux kernel.
 
 The simplest helloworld program given is:
 
-```
+```c
 #include <linux/init.h>
 #include <linux/module.h>
 MODULE_LICENSE("Dual BSD/GPL");
@@ -116,7 +116,8 @@ make -C ~/kernel-2.6 M=`pwd` modules
 The -C option changes to the directory of the kernel source code, while `M=` option causes the makefile to move back to the module source directory before trying to build the modules target. 
 
 To simplify the make command from before, we can rework the make file can be changed to:
-```
+
+```cmake
 # If KERNELRELEASE is defined, we've been invoked from the
 # kernel build system and can use its language.
 ifneq ($(KERNELRELEASE),)
@@ -209,7 +210,7 @@ The module initialization function registers any facility offered by the module.
 
 The definition of the initialization function always looks like this:
 
-```
+```c
 static int __init initialization_function(void)
 {
  /* Initialization code here */
@@ -229,7 +230,7 @@ Some facilities the modules can register include devices, filesystems, crypto tr
 
 The cleanup function unregisters interfaces and returns all resources to the system before the module is removed entirely. It is usually defined as:
 
-```
+```c
 static void __exit cleanup_function(void)
 {
  /* Cleanup code here */
@@ -251,7 +252,7 @@ Error recovery can be handled with the `goto` statement. Normally it is a bad id
 
 The following example code behaves correctly if initialization fails at any point:
 
-```
+```c
 int __init my_init_function(void)
 {
  int err;
@@ -284,7 +285,7 @@ Returning `err` is used in the previous example. Error codes in the kernel are n
 
 If your initialization and cleanup are more complicated than a few items, the goto approach can be difficult to manage. One other method to minimize code is to call the cleanup function from within the initialization function whenever an error occurs. The cleanup function must check the status of each item before undoing its registration. In a simple form, this looks like:
 
-```
+```c
 struct something *item1;
 struct somethingelse *item2;
 int stuff_ok;
@@ -340,7 +341,7 @@ Parameters are declared with the `module_param` macro defined in moduleparam.h. 
 
 The macro should be placed outside of any function and near the head of a source file. From the very first example, we could add a name input and a number of hello statement input as follows:
 
-```
+```c
 static char *whom = "world";
 static int howmany = 1;
 module_param(howmany, int, S_IRUGO);
