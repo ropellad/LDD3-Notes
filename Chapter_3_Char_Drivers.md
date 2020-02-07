@@ -3,17 +3,17 @@
 ## Chapter 3: Char Drivers 
 
 Chapter goal: Write a complete char device driver. (Yay! A real driver!)
-This chapter frequently uses <i>skull</i>, which stands for Simple Character Utility for Loading Localities. Scull is a char driver. It acts on a memory area as though it were a device (kind of like a ram disk?). In this chapter, "device" and "the memory area used by skull" mean the same thing. 
+This chapter frequently uses <i>scull</i>, which stands for Simple Character Utility for Loading Localities. Scull is a char driver. It acts on a memory area as though it were a device (kind of like a ram disk?). In this chapter, "device" and "the memory area used by scull" mean the same thing. 
 
-Skull is really only useful for demonstration/education purposes. It is like simulating a virtual char device without needing any hardware to do so. 
+Scull is really only useful for demonstration/education purposes. It is like simulating a virtual char device without needing any hardware to do so. 
 
 NOTE: I could not get the source for scull to work with Linux 5.X. I have attached my own char driver at the very end that should compile on the latest current kernel.
 
 ### scull Design :skull:
 
-First, we will define the capabilities (see mechanism from Ch.1 notes) the driver will offer to user programs. We can customize skull in many different ways, including several different abstractions on top of computer memory. 
+First, we will define the capabilities (see mechanism from Ch.1 notes) the driver will offer to user programs. We can customize scull in many different ways, including several different abstractions on top of computer memory. 
 
-The skull source implements many different devices (listed below). Each kind of device is called a <i>type</i>.
+The scull source implements many different devices (listed below). Each kind of device is called a <i>type</i>.
 
 1. scull0, scull1, scull2, scull3
    - These devices have a memory area that is global and persistent. 
@@ -110,7 +110,7 @@ A few drivers have major device numbers that are statically assigned, but these 
 
 The disadvantage of using dynamic allocation is that it requires one additional step to implement. Since you can't assign device nodes in advance without knowing the major number, you must read the number from /proc/devices. The process to do this replaces insmod with a simple script that calls insmod and reads /proc/devices to create special files. 
 
-The script <i>skull_load</i> is a shell script to create the devices with the proper major and minor numbers using dynamic allocation. The script can be invoked from the system's <i>rc.local</i> file, or call it manually whenever the module is needed. 
+The script <i>scull_load</i> is a shell script to create the devices with the proper major and minor numbers using dynamic allocation. The script can be invoked from the system's <i>rc.local</i> file, or call it manually whenever the module is needed. 
 
 ```
 #!/bin/sh
