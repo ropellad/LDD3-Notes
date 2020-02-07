@@ -22,9 +22,6 @@ Below are some configuration options for kernel development:
   - With this option, the kernel catches operations on uninitialized spinlocks and various other errors.
 - CONFIG_DEBUG_SPINLOCK_SLEEP
   - This option enables a check for attempts to sleep while holding a spinlock. It complains if you call a function that could potentially sleep, even if the particular call in question would not sleep.
-
-# REVIEW SPINLOCKS ^^^
-
 - CONFIG_INIT_DEBUG
   - Items marked with __init or __initdata are discarded after system initialization. This option enables checks for code that attempts to access initialization-time memory after initialization is complete.
 - CONFIG_DEBUG_INFO
@@ -85,7 +82,7 @@ Adding a flag is better than going through and deleting everything with printk s
 
 You can use the function `printk_ratelimit()` to reduce the maximum frequency of printed messages. AN example code snippet might look like this:
 
-```
+```c
 if (printk_ratelimit( ))
  printk(KERN_NOTICE "The printer is still on fire\n");
 ```
@@ -96,7 +93,7 @@ printk_ratelimit works by tracking how many messages are sent to the console. Wh
 
 The kernel provides a few utility macros defined in `<linux/kdev_t.h>`. They are:
 
-```
+```c
 int print_dev_t(char *buffer, dev_t dev);
 char *format_dev_t(char *buffer, dev_t dev);
 ```
@@ -124,7 +121,7 @@ Most /proc entries are read-only, so that is all we will be working with. The re
 
 To work with /proc, include `<linux/proc_fs.h>` to define the right functions. When a process reads from your /proc file, the kernel allocates a page of memory (like a page table in size?) where the driver can write data to be returned to user space. That buffer is passed to a function called read_proc:
 
-```
+```c
 int (*read_proc)(char *page, char **start, off_t offset, int count, int *eof, void *data);
 ```
 
@@ -144,7 +141,7 @@ A better way to implement large /proc files is called seq_file. It will be discu
 
 Once you have a read_proc function defined, you need to connect it to an entry in the /proc hierarchy. This is done with a call to create_proc_read_entry:
 
-```
+```c
 struct proc_dir_entry *create_proc_read_entry(const char *name,
     mode_t mode, struct proc_dir_entry *base,
     read_proc_t *read_proc, void *data);
@@ -158,7 +155,7 @@ struct proc_dir_entry *create_proc_read_entry(const char *name,
 
 The function used by scull to make its /proc function available as /proc/scullmem is:
 
-```
+```c
 create_proc_read_entry("scullmem", 0 /* default mode */,
     NULL /* parent dir */, scull_read_procmem,
     NULL /* client data */);
@@ -168,7 +165,7 @@ This creates the scullmem file in /proc with world-readable protections.
 
 Entries in /proc need to be removed when the module is unloaded. remove_proc_entry is the function that undoes when create_proc_read_entry does. Here is the scullmem version:
 
-```
+```c
 remove_proc_entry("scullmem", NULL /* parent dir */);
 ```
 
@@ -190,7 +187,7 @@ First, include `<linux/seq_file.h>`. Then, create 4 iterator methods:
 
 The start method is always first:
 
-```
+```c
 void *start(struct seq_file *sfile, loff_t *pos);
 ```
 
@@ -199,7 +196,7 @@ void *start(struct seq_file *sfile, loff_t *pos);
 
 The start method in scull is:
 
-```
+```c
 static void *scull_seq_start(struct seq_file *s, loff_t *pos)
 {
     if (*pos >= scull_nr_devs)
@@ -210,7 +207,7 @@ static void *scull_seq_start(struct seq_file *s, loff_t *pos)
 
 The next function needs to move the iterator to the next position, returning NULL if nothing is left in the sequence. Prototype for next:
 
-```
+```c
 void *next(struct seq_file *sfile, void *v, loff_t *pos);
 ```
 
@@ -219,7 +216,7 @@ void *next(struct seq_file *sfile, void *v, loff_t *pos);
 
 Here is how scull implements a next method:
 
-```
+```c
 static void *scull_seq_next(struct seq_file *s, void *v, loff_t *pos)
 {
     (*pos)++;
@@ -231,13 +228,13 @@ static void *scull_seq_next(struct seq_file *s, void *v, loff_t *pos)
 
 When the kernel is finished using the iterator, it calls the stop method to clean everything up. The prototype for stop is:
 
-```
+```c
 void stop(struct seq_file *sfile, void *v);
 ```
 
 Scull doesn't have anything to clean up, so it has no stop method. Between the calls start, next, and stop, the kernel calls the show method to output interesting stuff to user space. The method's prototype is:
 
-```
+```c
 int show(struct seq_file *sfile, void *v);
 ```
 
@@ -255,7 +252,7 @@ This method will create output for the item in the sequence indicated by the ite
 
 The show method implemented in scull is shown below:
 
-```
+```c
 static int scull_seq_show(struct seq_file *s, void *v)
 {
    struct scull_dev *dev = (struct scull_dev *) v;
@@ -282,7 +279,7 @@ static int scull_seq_show(struct seq_file *s, void *v)
 
 Now that all the methods are defined, scull packages them up and connects them to a file in /proc. First, populate a seq_operations structure:
 
-```
+```c
 static struct seq_operations scull_seq_ops = {
    .start = scull_seq_start,
    .next = scull_seq_next,
@@ -293,7 +290,7 @@ static struct seq_operations scull_seq_ops = {
 
 Instead of using read_proc like before, we will be using a different method that interacts with /proc at a lower level. Create an open method to connect the file to the seq_file operations:
 
-```
+```c
 static int scull_proc_open(struct inode *inode, struct file *file)
 {
     return seq_open(file, &scull_seq_ops);
@@ -302,7 +299,7 @@ static int scull_proc_open(struct inode *inode, struct file *file)
 
 Now we are ready to set up a file_operations structure. The only file operation we had to implement ourselves was open (this is nice!). The structure is described below:
 
-```
+```c
 static struct file_operations scull_proc_ops = {
    .owner = THIS_MODULE,
    .open = scull_proc_open,
@@ -314,7 +311,7 @@ static struct file_operations scull_proc_ops = {
 
 The final step is now to create the actual file in /proc with:
 
-```
+```c
 entry = create_proc_entry("scullseq", 0, NULL);
 if (entry)
   entry->proc_fops = &scull_proc_ops;
@@ -322,7 +319,7 @@ if (entry)
 
 We used the lower level create_proc_entry instead of create_proc_read_entry like before. The prototype for create_proc_entry is:
 
-```
+```c
 struct proc_dir_entry *create_proc_entry(const char *name,
   mode_t mode,
   struct proc_dir_entry *parent);
@@ -377,7 +374,7 @@ Many bugs deal with NULL pointer dereferences or incorrect pointer values. The u
 
 Sample bad output:
 
-```
+```c
 EIP is at faulty_write+0x4/0x10 [faulty]
 ```
 
@@ -410,7 +407,7 @@ An great tool to deal with lockups is the magic SysRq key. Magic SysRq is invoke
 
 Magic SysRq must be explicitly enabled in the kernel configuration and most distributions do not enable it for security reasons. For a system used to develop drivers, however, enabling magic SysRq is worth the trouble of building a new kernel in itself. Magic SysRq may be disabled at runtime with a command such as:
 
-```
+```bash
 echo 0 > /proc/sys/kernel/sysrq
 ```
 
@@ -422,7 +419,7 @@ When all hope is lost, use a debugger to step through the code and watch the val
 
 gdb is useful for looking as system internals. The debugger must be invoked as though the kernel were an application. In addition to specifying the filename for the ELF kernel image, you need to provide the name of a core file on the command line. For a running kernel, that core file is the kernel core image found in /proc/kcore. To use gdb:
 
-```
+```bash
 gdb /usr/src/linux/vmlinux /proc/kcore
 ```
 
