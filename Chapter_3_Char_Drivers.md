@@ -56,14 +56,14 @@ The first column has a lot of "c's" in it, meaning those are char devices. The "
 
 The `dev_t` type is defined in `<linux/types.h>` and is used to hold device numbers, which includes both the major and minor number parts. Instead of trying to keep track of the internal organization of device numbers (what each bit represents) you should instead use a set of macros found in `<linux/kdev_t.h>`. To get the major and minor numbers, use:
 
-```
+```c
 MAJOR(dev_t dev);
 MINOR(dev_t dev);
 ```
 
 You can also go the other way and assign manjor/minor numbers to a `dev_t` type using:
 
-```
+```c
 MKDEV(int major, int minor);
 ```
 
@@ -77,7 +77,7 @@ To set up a char driver, you need to one or more device numbers to work with. Th
 
 Usage:
 
-```
+```c
 int register_chrdev_region(dev_t first, unsigned int count, char *name);
 ```
 - `first` is the beginning device number of the range you want to allocate
@@ -89,7 +89,7 @@ int register_chrdev_region(dev_t first, unsigned int count, char *name);
 
 <i>register_chrdev_region</i> is good if you know exactly which device numbers you want a priori. You can instead use a dynamic allocation method, which requires a different function by the name <i>alloc_chrdev_region</i>. Usage:
 
-```
+```c
 int alloc_chrdev_region(dev_t *dev, unsigned int firstminor, unsigned int count, char *name);
 ```
 - `dev` is an output-only parameter that will hold the first number in your allocated range. 
@@ -98,7 +98,7 @@ int alloc_chrdev_region(dev_t *dev, unsigned int firstminor, unsigned int count,
 
 Make sure to free device numbers when you no longer need them. They can be freed with the <i>unregister_chrdev_region</i> function, typically used in the module's cleanup function. Usage:
 
-```
+```c
 void unregister_chrdev_region(dev_t first, unsigned int count);
 ```
 
@@ -112,7 +112,7 @@ The disadvantage of using dynamic allocation is that it requires one additional 
 
 The script <i>scull_load</i> is a shell script to create the devices with the proper major and minor numbers using dynamic allocation. The script can be invoked from the system's <i>rc.local</i> file, or call it manually whenever the module is needed. 
 
-```
+```cmake
 #!/bin/sh
 module="scull"
 device="scull"
@@ -213,7 +213,7 @@ The following is a REALLY big list of the file operations including their roles,
 
 Scull only implements the most important device methods. The file_operations structrue is thus defined as:
 
-```
+```c
 struct file_operations scull_fops = {
    .owner =   THIS_MODULE,
    .llseek =  scull_llseek,
@@ -263,7 +263,7 @@ The inode structure contains a lot of info about a file, but there are only two 
 
 To find the major and minor number of an inode, use the following macros:
 
-```
+```c
 unsigned int iminor(struct inode *inode);
 unsigned int imajor(struct inode *inode);
 ```
@@ -274,20 +274,20 @@ Use these macros instead of changing i_rdev direcctly.
 
 The kernel uses structures of type `struct cdev` internally to represent char devices. Before the kernel invokes your device's operations, you must allocate and register one or more of these structures. Include `<linux/cdev.h>` to do this. There are two ways to allocate and initialize one of these structures. If you want a standalone cdev structure at runtime, use:
 
-```
+```c
 struct cdev *my_cdev = cdev_alloc( );
 my_cdev->ops = &my_fops;
 ```
 
 If you want to embed the cdev structure within a device-specific structure of your own, intiialize your structure with:
 
-```
+```c
 void cdev_init(struct cdev *cdev, struct file_operations *fops);
 ```
 
 Once the structure is set up, tell the kernel with:
 
-```
+```c
 int cdev_add(struct cdev *dev, dev_t num, unsigned int count);
 ```
 
@@ -299,7 +299,7 @@ cdev_add can fail, and your device will not be added to the system. If it passes
 
 To remove the char device, call:
 
-```
+```c
 void cdev_del(struct cdev *dev);
 ```
 
@@ -309,7 +309,7 @@ Do not access the cdev structure after deleting it. This will cause crashes.
 
 Internally, scull represents each device with a structure of type scull_dev. This structure is defined as:
 
-```
+```c
 struct scull_dev {
    struct scull_qset *data; /* Pointer to first quantum set */
    int quantum; /* the current quantum size */
@@ -323,7 +323,7 @@ struct scull_dev {
 
 For now we look at cdev. This struct interfaces our device to the kernel. The scull code that handles this task is:
 
-```
+```c
 static void scull_setup_cdev(struct scull_dev *dev, int index)
 {
    int err, devno = MKDEV(scull_major, scull_minor + index);
@@ -347,7 +347,7 @@ The `open` method is provided for a driver to perform initialization in preparat
 
 The first thing to do it to identify which device is being opened. The prototype for the open method is:
 
-```
+```c
 int (*open)(struct inode *inode, struct file *filp);
 ```
 
@@ -355,13 +355,13 @@ The inode argument has the information we need from its i_cdev field, which cont
 
 Fortunately, there is a macro that takes a pointer to a field of type `containter_field` within a structure of type `container_type` and returns a pointer to the containing structure. The macro is defined in `<linux/kernel.h>` and is shown below:
 
-```
+```c
 container_of(pointer, container_type, container_field);
 ```
 
 In scull_open, this macro is used to find the appropriate device structure:
 
-```
+```c
 struct scull_dev *dev; /* device information */
 
 dev = container_of(inode->i_cdev, struct scull_dev, cdev);
@@ -374,7 +374,7 @@ The other way to identify the device being opened is to look at the minor number
 
 The code for scull_open then becomes:
 
-```
+```c
 int scull_open(struct inode *inode, struct file *filp)
 {
    struct scull_dev *dev; /* device information */
@@ -397,7 +397,7 @@ This method is the reverse of open. It needs to do the following:
 
 Scull has no hardware to shut down, so this method ends up looking like:
 
-```
+```c
 int scull_release(struct inode *inode, struct file *filp)
 {
    return 0;
@@ -411,7 +411,7 @@ For each open method, there is only one release method. Many close methods can b
 The scull driver introduces two core functions used to manage memory in the Linux
 kernel. These functions are defined in `<linux/slab.h>`:
 
-```
+```c
 void *kmalloc(size_t size, int flags);
 void kfree(void *ptr);
 ```
@@ -422,7 +422,7 @@ A call to kmalloc attempts to allocate size bytes of memory, the return is a poi
 
 The read and write methods both copy data from and to application code. Looking back at their prototypes:
 
-```
+```c
 ssize_t read(struct file *filp, char __user *buff, size_t count, loff_t *offp);
 ssize_t write(struct file *filp, const char __user *buff, size_t count, loff_t *offp);
 ```
@@ -436,7 +436,7 @@ Remember `buff` is a user-space pointer. It cannot be dereferenced by kernel cod
 
 Read and write is offered by the following kernel functions:
 
-```
+```c
 unsigned long copy_to_user(void __user *to, const void *from, unsigned long count);
 unsigned long copy_from_user(void *to, const void __user *from, unsigned long count);
 ```
@@ -459,7 +459,7 @@ Understanding return values:
 
 Here is the code for read in scull:
 
-```
+```c
 ssize_t scull_read(struct file *filp, char __user *buf, size_t count,
  loff_t *f_pos)
 {
@@ -519,7 +519,7 @@ Understanding return values:
 
 Here is the code for write in scull:\
 
-```
+```c
 ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
  loff_t *f_pos)
 {
@@ -581,7 +581,7 @@ These are the vector versions of the read and write calls. If your driver does n
 
 Prototypes for each:
 
-```
+```c
 ssize_t (*readv) (struct file *filp, const struct iovec *iov,
   unsigned long count, loff_t *ppos);
 ssize_t (*writev) (struct file *filp, const struct iovec *iov,
@@ -591,7 +591,7 @@ ssize_t (*writev) (struct file *filp, const struct iovec *iov,
 - `flip` and `ppos` arguments are the same as for read and write. 
 - The iovec structure defined in `<linux/uio.h>` is:
 
-  ```
+  ```c
   struct iovec
   {
   void _ _user *iov_base;
