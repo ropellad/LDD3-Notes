@@ -498,32 +498,551 @@ Let's look at how scull_p_read handles waiting for the data:
 
 ### Advanced Sleeping (my favorite grad course)
 
-Let's look first at how a process sleeps:
+Let's look first at how a process sleeps: 
 
+If you look in `<linux/wait.h>` there will be a data structure for `wait_queue_head_t` that is pretty simple. There is a spinlock and a linked list. The list contains a wait queue entry declared with type `wait_queue_t`. 
 
+The first step in going to sleep is the allocation and initialization of the wait_queue_t structure, followed by its addition to the proper wait queue. That way the person in charge of wakeup can find the right process. 
 
+The next step is to set the task in a state of "asleep". In `<linux/sched.h>` there are several task states defined. Some of them are:
 
+- `TASK_RUNNING` - a process is able to run
+- `TASK_INTERRUPTIBLE` - interruptible sleep (use this one)
+- `TASK_UNINTERRUPTIBLE` - uninterruptible sleep
 
+You should not directly change the state of a process, but if you need to, use the following:
 
+```c
+void set_current_state(int new_state);
+```
 
+Now that we have changed our state, we need to formally give up the processor. First, check to make sure that your wakeup condition is not true already, which could create a race condition if you were to check this before setting your state to sleep. Some code like this should exist after setting the process state:
 
+```c
+if (!condition)
+    schedule( );
+```
 
+Also make sure that the state is changed again after waking from sleep!
 
+Manual sleep can still be done. First create a wait queue entry with:
 
+```c
+DEFINE_WAIT(my_wait); (preferred)
 
+//OR in 2 steps:
+wait_queue_t my_wait;
+init_wait(&my_wait);
+```
 
+Next, add your wait queue entry to the queue and set the process state. Both are handled with:
 
+```c
+void prepare_to_wait(wait_queue_head_t *queue, wait_queue_t *wait, int state);
+```
 
+- `queue` and `wait` are the queue head and process entry
+- `state` is the new state for the process (usually `TASK_INTERRUPTIBLE`)
 
+After calling this function, the process can call `schedule()` after it has checked that it still needs to wait. Once schedule returns, it is cleanup time. That is handled with:
 
+```c
+void finish_wait(wait_queue_head_t *queue, wait_queue_t *wait);
+```
 
+Now let's look at the write method for scullpipe:
 
+```c
+/* How much space is free? */
+static int spacefree(struct scull_pipe *dev)
+{
+  if (dev->rp = = dev->wp)
+    return dev->buffersize - 1;
+  return ((dev->rp + dev->buffersize - dev->wp) % dev->buffersize) - 1;
+}
+static ssize_t scull_p_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+  struct scull_pipe *dev = filp->private_data;
+  int result;
+  if (down_interruptible(&dev->sem))
+    return -ERESTARTSYS;   
+ 
+ /* Make sure there's space to write */
+  result = scull_getwritespace(dev, filp);
+  if (result)
+    return result; /* scull_getwritespace called up(&dev->sem) */
+ 
+ /* ok, space is there, accept something */
+  count = min(count, (size_t)spacefree(dev));
+  if (dev->wp >= dev->rp)
+    count = min(count, (size_t)(dev->end - dev->wp)); /* to end-of-buf */
+  else /* the write pointer has wrapped, fill up to rp-1 */
+    count = min(count, (size_t)(dev->rp - dev->wp - 1));
+ PDEBUG("Going to accept %li bytes to %p from %p\n", (long)count, dev->wp, buf);
+ if (copy_from_user(dev->wp, buf, count)) {
+  up (&dev->sem);
+  return -EFAULT;
+ }
+ dev->wp += count;
+ if (dev->wp = = dev->end)
+    dev->wp = dev->buffer; /* wrapped */
+ up(&dev->sem);
+ 
+ /* finally, awake any reader */
+ wake_up_interruptible(&dev->inq); /* blocked in read( ) and select( ) */
+ 
+ /* and signal asynchronous readers, explained late in chapter 5 */
+ if (dev->async_queue)
+ kill_fasync(&dev->async_queue, SIGIO, POLL_IN);
+ PDEBUG("\"%s\" did write %li bytes\n",current->comm, (long)count);
+ return count;
+}
+```
 
+And the code that handles sleeping is:
 
+```c
+/* Wait for space for writing; caller must hold device semaphore. On
+ * error the semaphore will be released before returning. */
+static int scull_getwritespace(struct scull_pipe *dev, struct file *filp)
+{
+   while (spacefree(dev) = = 0) { /* full */
+      DEFINE_WAIT(wait);
+      up(&dev->sem);
+      if (filp->f_flags & O_NONBLOCK)
+          return -EAGAIN;
+      PDEBUG("\"%s\" writing: going to sleep\n",current->comm);
+      prepare_to_wait(&dev->outq, &wait, TASK_INTERRUPTIBLE);
+      if (spacefree(dev) = = 0)
+          schedule( );
+      finish_wait(&dev->outq, &wait);
+      if (signal_pending(current))
+          return -ERESTARTSYS; /* signal: tell the fs layer to handle it */
+      if (down_interruptible(&dev->sem))
+          return -ERESTARTSYS;
+   }
+   return 0;
+}
+```
 
+In this code, if space is available without sleeping, the function just returns. Otherwise, it needs to drop the device semaphore and wait. It uses `DEFINE_WAIT` to set up a wait queue entry and `prepare_to_wait` to get ready for the actual sleep. Then after a quick on the buffer to make sure the wake signal hasn't already been triggered, we can call schedule(). 
 
+In the case where only one process in the queue should awaken instead of all of them, we need a way to handle exclusive waits. It acts like a normal sleep with two big differences:
 
+1. When a wait queue entry has the WQ_FLAG_EXCLUSIVE flag set, it is added to the end of the wait queue. Entries without that flag are, instead, added to the beginning.
+2. When wake_up is called on a wait queue, it stops after waking the first process that has the WQ_FLAG_EXCLUSIVE flag set.
 
+The kernel will still wakeup all nonexclusive waiters every time, but with this method an exclusive waiters will not have to create a "thundering herd" of processes waiting their turn still. 
 
+You might use exclusive waits if:
 
+- you expect significant contention for a resource AND
+- waking a single process is sufficient to completely consume the resource when it becomes available
 
+This is used for Apache web servers. Putting a process into interruptable wait only requires changing one line:
+
+```c
+void prepare_to_wait_exclusive(wait_queue_head_t *queue, wait_queue_t *wait, int state);
+```
+
+Now we need to wake up. Here are all the variants to use:
+
+```c
+wake_up(wait_queue_head_t *queue);
+wake_up_interruptible(wait_queue_head_t *queue);
+  /*wake_up awakens every process on the queue that is not in an exclusive wait,
+  and exactly one exclusive waiter, if it exists. wake_up_interruptible does the
+  same, with the exception that it skips over processes in an uninterruptible sleep.
+  These functions can, before returning, cause one or more of the processes awakened 
+  to be scheduled (although this does not happen if they are called from an
+  atomic context).*/
+  
+wake_up_nr(wait_queue_head_t *queue, int nr);
+wake_up_interruptible_nr(wait_queue_head_t *queue, int nr);
+  /*These functions perform similarly to wake_up, except they can awaken up to nr
+  exclusive waiters, instead of just one. Note that passing 0 is interpreted as 
+  asking for all of the exclusive waiters to be awakened, rather than none of 
+  them.*/
+  
+wake_up_all(wait_queue_head_t *queue);
+wake_up_interruptible_all(wait_queue_head_t *queue);
+  /*This form of wake_up awakens all processes whether they are performing an
+  exclusive wait or not (though the interruptible form still skips processes doing
+  uninterruptible waits).*/
+  
+wake_up_interruptible_sync(wait_queue_head_t *queue);
+  /*Normally, a process that is awakened may preempt the current process and be
+  scheduled into the processor before wake_up returns. In other words, a call to
+  wake_up may not be atomic. If the process calling wake_up is running in an
+  atomic context (it holds a spinlock, for example, or is an interrupt handler), 
+  this rescheduling does not happen. Normally, that protection is adequate. If, 
+  however, you need to explicitly ask to not be scheduled out of the processor at 
+  this time, you can use the “sync” variant of wake_up_interruptible. This function 
+  is most often used when the caller is about to reschedule anyway, and it is more
+  efficient to simply finish what little work remains first.*/
+```
+
+Most of the time, drivers just use `wake_up_interruptible` and not any other special variants. 
+
+### Testing the scullpipe Driver
+
+In one terminal, type:
+
+```bash
+cat /dev/scullpipe
+```
+
+In a different terminal, copy a file to /dev/scullpipe. The data should appear in the first window. 
+
+### Poll and Select
+
+Applications that use nonblocking I/O often use the poll, select, and epoll system calls in combination with the nonblocking. Each of these calls have the same basic functionality: each allow a process to determine whether it can read from or write to one or more open files without blocking. These calls can also block a process until any of a given set of file descriptors becomes available for reading or writing. Therefore, they are often used in applications that must use multiple input or output streams without getting stuck on any one of them. 
+
+Support for these calls comes from the driver's poll method. It has prototype:
+
+```c
+unsigned int (*poll) (struct file *filp, poll_table *wait);
+```
+
+This method is called whenever poll, select, or epoll are used (they are all the same, just developed concurrently by different groups). The device method must do two things:
+
+1. Call `poll_wait` on one (or more) wait queues that could indicate a change in the poll status. If no file descriptors are currently available for I/O, the kernel causes the process to wait for the wait queues for all file descriptors passed to the system call.
+2. Return a bit mask describing the operations that could be immediately performed without blocking.
+
+These operations are simple and similar among many drivers. The `poll_table` structure is used within the kernel to implement the poll, select, and epoll calls (see `<linux/poll.h>`). The driver then adds a wait queue to the poll_table structure by calling poll_wait:
+
+```c
+void poll_wait (struct file *, wait_queue_head_t *, poll_table *);
+```
+
+The poll method also returns a bit mask describing which operations could be implemented immediately:
+
+```
+POLLIN
+    This bit must be set if the device can be read without blocking.
+    
+POLLRDNORM
+    This bit must be set if “normal” data is available for reading. A readable 
+    device returns (POLLIN | POLLRDNORM).
+    
+POLLRDBAND
+    This bit indicates that out-of-band data is available for reading from the 
+    device. It is currently used only in one place in the Linux kernel (the DECnet 
+    code) and is not generally applicable to device drivers.
+    
+POLLPRI
+    High-priority data (out-of-band) can be read without blocking. This bit causes
+    select to report that an exception condition occurred on the file, because 
+    select reports out-of-band data as an exception condition.
+    
+POLLHUP
+    When a process reading this device sees end-of-file, the driver must set POLLHUP
+    (hang-up). A process calling select is told that the device is readable, as 
+    dictated by the select functionality.
+  
+POLLERR
+    An error condition has occurred on the device. When poll is invoked, the device
+    is reported as both readable and writable, since both read and write return an
+    error code without blocking.
+    
+POLLOUT
+    This bit is set in the return value if the device can be written to without 
+    blocking.
+    
+POLLWRNORM
+    This bit has the same meaning as POLLOUT, and sometimes it actually is the same
+    number. A writable device returns (POLLOUT | POLLWRNORM).
+    
+POLLWRBAND
+    Like POLLRDBAND, this bit means that data with nonzero priority can be written 
+    to the device. Only the datagram implementation of poll uses this bit, since a 
+    datagram can transmit out-of-band data.
+```
+
+Here is the scullpipe implementation of poll:
+
+```c
+static unsigned int scull_p_poll(struct file *filp, poll_table *wait)
+{
+     struct scull_pipe *dev = filp->private_data;
+     unsigned int mask = 0;
+     /*
+     * The buffer is circular; it is considered full
+     * if "wp" is right behind "rp" and empty if the
+     * two are equal.
+     */
+     down(&dev->sem);
+     poll_wait(filp, &dev->inq, wait);
+     poll_wait(filp, &dev->outq, wait);
+     if (dev->rp != dev->wp)
+        mask |= POLLIN | POLLRDNORM; /* readable */
+     if (spacefree(dev))
+        mask |= POLLOUT | POLLWRNORM; /* writable */
+     up(&dev->sem);
+     return mask;
+}
+```
+
+This code adds the two scullpipe wait queues to the poll_table and sets the mask bits depending on whether data can be read or written. Scullpipe does not support an end-of-file condition. 
+
+With real FIFOs the reader sees an end-of-file when all writers close the file. You need to check dev->nwriters in read and in poll to report EOF if no process has the device opened for writing. You also need to make sure to implement blocking within open to avoid a scenario where a reader had opened the file before the writer. 
+
+### Interaction with Read and Write
+
+The purpose of `poll` and `select` calls is to determine in advance if an I/O operation will block. They compliment read and write well, and doing all three at once it descibed below:
+
+#### Reading data from the device:
+- If there is data in the input buffer, the read call should return immediately with no big delay.
+- You can always return less data than expected. In this case, return `POLLIN|POLLRDNORM`
+-  If there is no data in the input buffer, by default read must block until at least one byte is there
+-  If `O_NONBLOCK` is set, read returns immediately with a return value of `-EAGAIN`.
+-  If we are at end-of-file, read should return immediately with a value of 0. `poll` should report `POLLHUP` in this case. 
+
+#### Writing to the device
+- If there is space in the output buffer, write should return without delay
+- In this case, `poll` reports the device is writable by returning `POLLOUT|POLLWRNORM`
+- If the output buffer is full, by default write blocks until some space is freed
+- If `O_NONBLOCK` is set, write returns immediately with a return value of -EAGAIN 
+- `poll` should then report the file is not writeable. 
+- If the device cannot accept more data, write returns `-ENOSPC`
+- Never make a write call wait for data transmission before returning, even if `O_NONBLOCK` is clear
+
+#### Flushing pending output
+- The write method alone doesn’t account for all data output needs
+- The fsync function/system call fills this gap
+- The protoype for fsync is:
+  -  `int (*fsync) (struct file *file, struct dentry *dentry, int datasync);`
+  -  Waits until device has been completely flushed to return
+  -  Not time critical
+  -  Char driver commonly has NULL pointer in its `fops`
+  -  Block devices always implement the `block-sync` method
+
+### The Underlying Data Structure
+
+The poll_table structure is a wrapper around a function that builds the actual data structure. For poll and select, this is a linked list of memory pages containing poll_table_entry structures. Each poll_table_entry holds the `struct file` and `wait_queue_head_t` pointers passed to poll_wait, along with an associated wait queue entry. A call to poll_wait can also sometimes add the process to the given wait queue. The structure is maintained by the kernel. 
+
+# GO OVER THE GENERAL POLLING PROCESS ABOVE (and in general how it works with blocking/nonblocking I/O)
+
+epoll is better when dealing with A LOT of file descriptors to prevent setting up and tearing down the data structure between every I/O operation. It sets up the data structure once and can use it many times. 
+
+### Asynchronous Notification
+
+What if you want to avoid continuous polling? We can implement asynchronous notification so an application can receive a signal whenever data becomes available and not worry about polling. 
+
+Two steps are needed for user programs to enable asynchronous notification:
+
+1. They specify a process as the “owner” of the file. When a process invokes the F_SETOWN command using the fcntl system call, the process ID of the owner process is saved in filp->f_owner for later use.
+2. They must set the FASYNC flag in the device by means of the F_SETFL fcntl command.
+
+After these two calls have happened, the input file can request delivery of a `SIGIO` signal whenever new data arrives. The signal is sent to the process in filp->f_owner.
+
+Code example for stdin input file:
+
+```c
+signal(SIGIO, &input_handler); /* dummy sample; sigaction( ) is better */
+fcntl(STDIN_FILENO, F_SETOWN, getpid( ));
+oflags = fcntl(STDIN_FILENO, F_GETFL);
+fcntl(STDIN_FILENO, F_SETFL, oflags | FASYNC);
+```
+
+Usually only sockets and ttys implement asynchronous notification. If more than one file is enabled to asynchronously notify the process of pending input, the application must still resort to poll or select to find out what happened.
+
+### The Driver's Point of View
+
+How can a device driver implement asynchronous notification? Through the following steps:
+
+1. When F_SETOWN is invoked, nothing happens, except that a value is assigned to filp->f_owner.
+2. When F_SETFL is executed to turn on FASYNC, the driver’s fasync method is called. This method is called whenever the value of FASYNC is changed in filp->f_flags to notify the driver of the change, so it can respond properly. The flag is cleared by default when the file is opened.
+3. When data arrives, all the processes registered for asynchronous notification are sent a SIGIO signal.
+
+The first step is easy to code from the driver side. The next two require maintaining a dynamic data structure with a lot of help from the kernel. 
+
+We use one data structure and two functions to do all of this. It is all in the header file `<linux/fs.h>`. The data structure is called `struct fasync_struct` and the two functions have the following prototypes:
+
+```c
+int fasync_helper(int fd, struct file *filp,
+        int mode, struct fasync_struct **fa);
+void kill_fasync(struct fasync_struct **fa, int sig, int band);
+```
+
+Whew, we have some double pointers in there! Details:
+
+- `fasync_helper` adds or removes entries from the list of interested processes when the FASYNC flag changes for an open file
+- `kill_fasync` is used to signal the interested processes when data arrives
+
+How scullpipe implements the fasync method:
+
+```c
+static int scull_p_fasync(int fd, struct file *filp, int mode)
+{
+     struct scull_pipe *dev = filp->private_data;
+     return fasync_helper(fd, filp, mode, &dev->async_queue);
+}
+```
+
+scullpipe does this in the write method as:
+
+```c
+if (dev->async_queue)
+    kill_fasync(&dev->async_queue, SIGIO, POLL_IN);
+```
+
+The last step: invoke the fasync method when the file is closed to remove the file from the list of active asynchronous readers. scullpipe does this in the release method as:
+
+```c
+/* remove this filp from the asynchronously notified filp's */
+scull_p_fasync(-1, filp, 0);
+```
+
+### Seeking a Device with llseek
+
+llseek is useful for some devices and is easy to implement. The method implements the lsddk and llseek system calls. By default, the kernel performs seeks by modifying `filp->f_pos` - the current reading/writing position in the file. 
+
+How scull implements llseek:
+
+```c
+loff_t scull_llseek(struct file *filp, loff_t off, int whence)
+{
+ struct scull_dev *dev = filp->private_data;
+ loff_t newpos;
+ switch(whence) {
+ 
+    case 0: /* SEEK_SET */
+       newpos = off;
+       break;
+       
+    case 1: /* SEEK_CUR */
+       newpos = filp->f_pos + off;
+       break;
+       
+    case 2: /* SEEK_END */
+       newpos = dev->size + off;
+       break;
+       
+    default: /* can't happen */
+       return -EINVAL;
+ }
+ if (newpos < 0) return -EINVAL;
+ filp->f_pos = newpos;
+ return newpos;
+}
+```
+
+The only device-specific operation in this implementation of llseek is retrieving the file length from the device.
+
+If your device does not support llseek (like a keyboard input stream) you should inform the kernel that your device does not support llseek by calling nonseekable_open in your open method:
+
+```c
+int nonseekable_open(struct inode *inode; struct file *filp);
+```
+
+This marks the `flip` as nonseekable, and the kernel will prohibit the lseek call on the file. Also make sure to set the llseek method in the `file_operations` structure to the special helper function no_llseek defined in `<linux/fs.h>`.
+
+### Access Control on a Device File
+
+Access control is implemented in the `open` and `release` operations. 
+
+#### Single-Open Devices
+
+The brute force method: permit a device to be opened by only one process at a time. This is called single openness. It is best to avoid this way because of user ingenuity. It may get in the way of what users want to do. This is how scullsingle implents single openness:
+
+```c
+static atomic_t scull_s_available = ATOMIC_INIT(1);
+static int scull_s_open(struct inode *inode, struct file *filp)
+{
+     struct scull_dev *dev = &scull_s_device; /* device information */
+      if (! atomic_dec_and_test (&scull_s_available)) {
+          atomic_inc(&scull_s_available);
+          return -EBUSY; /* already open */
+      }
+     /* then, everything else is copied from the bare scull device */
+     if ( (filp->f_flags & O_ACCMODE) = = O_WRONLY)
+        scull_trim(dev);
+     filp->private_data = dev;
+     return 0; /* success */
+}
+```
+The atomic variable scull_s_available decrements with the open call and refuses acess if somebody else already has the device open. 
+
+And the release call marks the device as no longer busy:
+
+```c
+static int scull_s_release(struct inode *inode, struct file *filp)
+{
+ atomic_inc(&scull_s_available); /* release the device */
+ return 0;
+}
+```
+
+### Restricting Access to a Single User at a Time
+
+This is implemented in the open call of sculluid as:
+
+```c
+ spin_lock(&scull_u_lock);
+ if (scull_u_count &&
+       (scull_u_owner != current->uid) && /* allow user */
+       (scull_u_owner != current->euid) && /* allow whoever did su */
+       !capable(CAP_DAC_OVERRIDE)) { /* still allow root */
+    spin_unlock(&scull_u_lock);
+    return -EBUSY; /* -EPERM would confuse the user */
+ }
+ 
+ if (scull_u_count = = 0)
+      scull_u_owner = current->uid; /* grab it */
+      
+ scull_u_count++;
+ spin_unlock(&scull_u_lock);
+```
+
+This allows the many processes to work on the device as long as they are from the same owner. A spinlock is implemented to control access to `scull_u_owner` and `scull_u_count`. The corresponding release method then looks like:
+
+```c
+static int scull_u_release(struct inode *inode, struct file *filp)
+{
+   spin_lock(&scull_u_lock);
+   scull_u_count--; /* nothing else */
+   spin_unlock(&scull_u_lock);
+   return 0;
+}
+```
+
+### Blocking open as an Alternative to EBUSY
+
+Sometimes you want to wait instead of returning an error when a device is busy. This is done by implementing blocking open. The scullwuid driver waits on open instead of returning an error. The only difference is the following:
+
+```c
+spin_lock(&scull_w_lock);
+while (! scull_w_available( )) {
+   spin_unlock(&scull_w_lock);
+   if (filp->f_flags & O_NONBLOCK) return -EAGAIN;
+   if (wait_event_interruptible (scull_w_wait, scull_w_available( )))
+      return -ERESTARTSYS; /* tell the fs layer to handle it */
+   spin_lock(&scull_w_lock);
+}
+if (scull_w_count = = 0)
+    scull_w_owner = current->uid; /* grab it */
+scull_w_count++;
+spin_unlock(&scull_w_lock);
+```
+
+It is based on the wait queue. If the device is busy, the process is placed on a wait queue until the owning process closes the device. The release method then needs to awaken any pending process with:
+
+```c
+static int scull_w_release(struct inode *inode, struct file *filp)
+{
+   int temp;
+   
+   spin_lock(&scull_w_lock);
+   scull_w_count--;
+   temp = scull_w_count;
+   spin_unlock(&scull_w_lock);
+   if (temp = = 0)
+        wake_up_interruptible_sync(&scull_w_wait); /* awake other uid's */
+   return 0;
+}
+```
+
+### Cloning the Device on Open
+
+One final way to manage access control: create different private copies of a device depending on the process controlling it. This type of access control is rarely needed and is really only done for software devices (hard to clone a physical keyboard, dawg). The scullpriv device node implements virtual devices in the scull package. The book describes the open and release methods for this device, but I am going to forego putting them in these notes because this chapter is already huge and I don't think I will ever need to use this type of access control. 
