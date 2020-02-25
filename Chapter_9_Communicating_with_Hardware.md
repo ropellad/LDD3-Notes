@@ -2,7 +2,7 @@
 
 ## Chapter 9: Communicating with Hardware
 
-Chapter goal: Understand how a driver can access I/O ports and I/O memory while being portable across Linux platforms.
+Chapter goal: Understand how a driver can access I/O ports and I/O memory while being portable across Linux platforms. This chapter mainly works with the parallel port found on older machines. It may not apply to current computers as much, but the concepts are still important to understand. 
 
 ### I/O Ports and I/O Memory
 
