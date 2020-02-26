@@ -383,8 +383,6 @@ void free_cold_page(struct page *page);
 
 - The hot page versions are for cache-resident pages
 
-# GO over what cache-resident pages means ^^^
-
 ### vmalloc and Friends (again, where are these friends coming from?)
 
 vmalloc allocates a contiguous memory region in *virtual* address space that might be nonconsecutive in physical memory. It returns 0 if an error occurs, and a pointer to a linear memory area of size at least `size` on success. You shouldn't choose vmalloc as your first choice in development because it is slightly less efficient to work with. Try to work with individual pages rather than vmalloc. But here are the prototypes for vmalloc:
@@ -524,9 +522,3 @@ void free_bootmem(unsigned long addr, unsigned long size);
 ```
 
 It is probably best to avoid this technique altogether for now. Only use it if you *really* *really* need to. And then go to the internet to find out how to best do this. 
-
-
-
-
-
-
