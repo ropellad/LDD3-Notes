@@ -505,7 +505,7 @@ void local_irq_enable(void);
 
 There is no way to disable all interrupts globally across the entire system. You should never need to do this anyways.
 
-### Top and Bottom Halves :first_quarter_moon: :last_quarter_moon:
+### Top and Bottom Halves :first_quarter_moon: :last_quarter_moon: (The moon is made of cheese)
 
 Okay - now how do we perform lengthy tasks within an interrupt handler? The two needs (work and speed) conflict with each other, leaving the driver writer in a bit of a bind.
 
