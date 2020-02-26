@@ -258,8 +258,6 @@ Kernel code can tell if it is running in interrupt context by calling the functi
 
 Another function related to `in_interrupt()` is `in_atomic()`.  Its return value is nonzero whenever scheduling is not allowed. This includes hardware and software interrupt contexts as well as any time when a spinlock is held. In the spinlock case current may be valid, but access to user space is forbidden since it can cause scheduling to happen. Whenever you are using `in_interrupt()`, you should really consider if `in_atomic()` is what you actually mean. Both functions are declared in `<asm/hardirq.h>`. 
 
-# GO OVER THESE DIFFERENCES ^^^
-
 One other cool feature of kernel timers is that a task can reregister itself to run again at a later time. This is due to the fact that each `timer_list` structure is unlinked from the list of active timers before being run and can then by immediately relinked elsewhere. Rescheduling the same task over and over can be useful for polling. On an SMP system, a timer that reregisters itself always runs on the same CPU. 
 
 ### The Timer API
@@ -334,8 +332,6 @@ How the cascading table works:
 - timers with `expires` in the past are scheduled to run at the next timer tick
 - When `__run_timers` is fired, it executes all pending timers for the current timer tick
 - If jiffies is currently a multiple of 256, the function also rehashes one of the next-level lists of timers into the 256 short-term lists
-
-# Go over this process, it sounds cool ^^^
 
 Note: If you need really accurate timing for industrial environments, you will probably need a real-time kernel extension. 
 
@@ -488,16 +484,6 @@ After flush_workqueue returns, no work function submitted prior to the call is r
 void destroy_workqueue(struct workqueue_struct *queue);
 ```
 
-# Go over the basics of workqueues ^^^
-
 ### The Shared Queue
 
 Most of the time a device driver does not need its own workqueue. If you only submit tasks to the queue occasionally, it may be more efficient to simply use the shared, default workspace that is provided by the kernel. Note that you should not be hogging this space and that other people will affect how long it takes your tasks to get their turn on the CPU. 
-
-# GO over the actual code to implement this in the book and which parts are relevant
-
-
-
-
-
-
