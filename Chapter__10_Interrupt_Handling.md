@@ -311,9 +311,6 @@ for its IRQ as well. The function handle_IRQ_event is called to actually invoke 
 
 Probing IRQs is done by setting the IRQ_WAITING status bit for each IRQ that currently lacks a handler. When the interrupt happens, do_IRQ clears that waiting bit and then returns because no handler is registered. When probe_irq_off is called by the driver, it needs to search for only the IRQ that no longer has IRQ_WAITING set. 
 
-# Go over how this actually works ^^^
-
-
 ### Implementing a Handler
 
 We can write a handler in ordinary c code. Nice!
@@ -606,8 +603,6 @@ void short_do_tasklet (unsigned long unused)
 
 A tasklet makes a note of how many interrupts have arrived since it was last called. A driver must take into consideration that many interrupts could pile up while the slower lower half is executing.
 
-# How do we handle this? Does it "buffer" itself? ^^^
-
 ### Workqueues
 
 Review: Workqueues invoke a function at some future time in the context of a special worker process. Since the workqueue runs in a process context, it can sleep if need be. You still cannot copy data into user space from a workqueue unless you used some advanced techniques shown in chapter 15. 
@@ -668,8 +663,6 @@ Releasing the handler is performed in the normal way with free_irq. Remember to 
 
 One last note: a driver with a shared handler can’t play with enable_irq or disable_irq. This could really mess up the other devices and their functionality. 
 
-# go over how this interrupt handling works with sharing ^^^
-
 ### Running the Handler
 
 When the kernel receives an interrupt, all the registered handlers are invoked. A shared handler must be able to distinguish between interrupts that it needs to handle and ones that are meant for other devices. 
@@ -716,8 +709,6 @@ Using shared handlers in the system doesn’t change /proc/stat, which doesn’t
 ```
 
 We can see from this that IRQ 9 shares between IR-IO-APIC, fasteoi, and acpi. 
-# What are these things ^^^
-
 
 ### Interrupt-Driven I/O
 
