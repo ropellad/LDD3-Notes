@@ -36,14 +36,14 @@ Each PCI peripheral is identified by a:
 
 The PCI spec allows for a single system to host up to 256 buses, but because this number is often not enough for big systems, you can now have PCI domains with each domain supporting 256 buses. Each bus can host 32 devices. Each device can be a multifunction board with a maximum of 8 functions. Each function can be identified at a hardware level by a 16-bit address - this address is also called a key. The good news is that drivers written for Linux do not need to deal with the binary addresses. Drivers instead use a a specific data structure call `pci_dev` to act on the devices. 
 
-Most systems have several PCI buses. We use a special peripheral device called a bridge to join two buses on a system. The overall layout of a PCI system is then a tree where each bus is connected to an upper-layer bus all the way up to bus 0 at the root of the tree. The bridge structure is very interesting - here is an image with more detail on what the structure looks like ((c) David A Rusling):
+Most systems have several PCI buses. We use a special peripheral device called a bridge to join two buses on a system. The overall layout of a PCI system is then a tree where each bus is connected to an upper-layer bus all the way up to bus 0 at the root of the tree. The bridge structure is very interesting - here is an image with more detail on what the structure looks like (&copy; David A Rusling):
 
 ![pci-system.gif](https://tldp.org/LDP/tlk/dd/pci-system.gif)
 
 The 16-bit hardware addresses associated with PCI peripherals are usually hidden within the `pci_dev` object, but are still visible when lists of devices are being used. One example is the output of `lspci` and the layout information in /proc/pci and /proc/bus/pci. The sysfs representation of PCI devices also shows the addressing scheme in addition to the PCI domain info. When the hardware address is displayed, it can be shown as two 8-bit values - the first a bus number and the second a device and function number. It can also be shown as three values - bus, devices, and function. Finally, it can be shown as four values - domain, bus, device, and function. These values are typcially displayed in hex format. Here are some example outputs:
 
 This method splits the numbers into three separate fields:
-```bash 
+```bash
 $ lspci 
 
 00:00.0 Host bridge: Intel Corporation Device 9b61 (rev 0c)
@@ -231,7 +231,7 @@ The file called `config` is a binary file that enables the raw PCI config info t
 
 ### Configuration Registers and Initialization
 
-All PCI devices have at least a 256-byte address space. The first 64 bytes are standardized while the rest are device dependent. Figure 12-2 shows the layout of the device-independent configuration space. The book has a really nice picture of this space, but here is the best online equialent I could find ((c) Micronet Co.):
+All PCI devices have at least a 256-byte address space. The first 64 bytes are standardized while the rest are device dependent. Figure 12-2 shows the layout of the device-independent configuration space. The book has a really nice picture of this space, but here is the best online equialent I could find (&copy; Micronet Co.):
 
 ![14.png](http://www.mnc.co.jp/english/INtime/faq07-2_kanren/images/14.png)
 
@@ -290,7 +290,8 @@ __u32 class;
 __u32 class_mask;
     These two values allow the driver to specify that it supports a type of PCI class
     device. The different classes of PCI devices (a VGA controller is one example)
-    are described in the PCI specification. If a driver can handle any type of subsystem     ID, the value PCI_ANY_ID should be used for these fields.
+    are described in the PCI specification. If a driver can handle any type of subsystem
+    ID, the value PCI_ANY_ID should be used for these fields.
     
 kernel_ulong_t driver_data;
     This value is not used to match a device but is used to hold information that the
