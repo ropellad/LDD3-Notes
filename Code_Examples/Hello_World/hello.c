@@ -1,14 +1,17 @@
 // Hello.c file demonstartes command line argument passing with the kernel
 
+// Start by including the appropriate header files
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/stat.h>
 
+// Give it some sort of license and author so that the kernel does not complain
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("DSR");
 
+// Lets initialize some variables of a bunch of different types to play with
 static short int short_int = 1;
 static int reg_int = 56;
 static long int long_int = 1900;
@@ -16,14 +19,14 @@ static char *sample_string = "test string";
 static int intArray[6] = {1,2,3,4,5,-8};
 static int arr_argc = 0;
 
-/* 
+
+/* This part introduces command line parameter passing
  * module_param(foo, int, 0000)
  * The first param is the parameters name
  * The second param is it's data type
  * The final argument is the permissions bits, 
  * for exposing parameters in sysfs (if non-zero) at a later stage.
  */
-
 module_param(short_int, short, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 MODULE_PARM_DESC(short_int, "A short integer example");
 module_param(reg_int, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -33,7 +36,7 @@ MODULE_PARM_DESC(long_int, "A long integer example");
 module_param(sample_string, charp, 0000);
 MODULE_PARM_DESC(sample_string, "A character string example");
 
-/*
+/* There is a slightly different setup for passing an array of parameters
  * module_param_array(name, type, num, perm);
  * The first param is the parameter's (in this case the array's) name
  * The second param is the data type of the elements of the array
