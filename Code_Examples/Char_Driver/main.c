@@ -9,6 +9,7 @@
 #include <linux/uaccess.h>
 #include <linux/fs.h>
 
+//Set this to whatever you want - it will create more/less virtual devices
 #define MAX_DEVICES 4
 
 // Define the functions for open, release, ioctl, read, and write for the char driver
@@ -34,9 +35,10 @@ struct dom_char_device_data {
 };
 
 // Setting dev_major to 0 means dynamically allocate a new major device number for the module - whatever is free
+// This is a good practice to avoid conflicts with other modules and drivers
 static int dev_major = 0;
 
-// Not sure what these two lines do 
+// We don't require a class here. Set up as many devices that we wanted earlier with MAX_DEVICES
 static struct class *dom_chardev_class = NULL;
 static struct dom_char_device_data dom_chardev_data[MAX_DEVICES];
 
@@ -103,7 +105,6 @@ static void __exit dom_chardev_exit(void)
     class_unregister(dom_chardev_class);
     class_destroy(dom_chardev_class);
 
-    // Does MINORMASK return the number of minor devices? The last minor device?
     unregister_chrdev_region(MKDEV(dev_major, 0), MINORMASK);
 }
 
@@ -123,12 +124,12 @@ static int dom_chardev_release(struct inode *inode, struct file *file)
 
 static long dom_chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-    // When is ioctl used?
+    // ioctl stuff
     printk("DOMCHARDEV-%d: Device ioctl\n", MINOR(file->f_path.dentry->d_inode->i_rdev));
     return 0;
 }
 
-// read function for the fops struct. Does __user denote the buffer is sent to user space?
+// read function for the fops struct
 static ssize_t dom_chardev_read(struct file *file, char __user *buf, size_t count, loff_t *offset)
 {
     uint8_t *data = "Hello from the kernel world! This is Dom's char device!\n";
@@ -136,7 +137,7 @@ static ssize_t dom_chardev_read(struct file *file, char __user *buf, size_t coun
 
     printk("Reading device number: (%d, %d)\n", dev_major, MINOR(file->f_path.dentry->d_inode->i_rdev));
 
-    // Saturate count to data length if needed (Why?)
+    // Saturate count to data length if needed
     if (count > datalen) {
         count = datalen;
     }
@@ -152,24 +153,25 @@ static ssize_t dom_chardev_read(struct file *file, char __user *buf, size_t coun
 
 static ssize_t dom_chardev_write(struct file *file, const char __user *buf, size_t count, loff_t *offset)
 {
-	//I had to play with a few magic +1 and -1 operators to get the behavior right. May need some help on this...
+	  //Check my counting logic here. I could be off
     size_t maxdatalen = 10;
     unsigned long ncopied;
-    uint8_t databuf[11];
+    uint8_t databuf[10];
     size_t overflow = 0;
     
+    // Use this for debugging count stuff
     //printk("Size of count: %zd\n", count);
 
     printk("Writing device number: (%d, %d)\n", dev_major, MINOR(file->f_path.dentry->d_inode->i_rdev));
 
-	//truncate maxdatalen if the bytes to send is less than maxdatalen
+	  //truncate maxdatalen if the bytes to send is less than maxdatalen
     if (maxdatalen > count) {
         maxdatalen = count;
     }
     //Warn if too much data is trying to be written
-    else if (maxdatalen < (count-1)){
+    else if (maxdatalen < (count)){
     	overflow = count - maxdatalen;
-    	printk("Too big of an input. Unable to copy %ld bytes from the user\n", (overflow-1));
+    	printk("Too big of an input. Unable to copy %ld byte(s) from the user\n", (overflow));
     }
 
     ncopied = copy_from_user(databuf, buf, maxdatalen);
@@ -178,7 +180,7 @@ static ssize_t dom_chardev_write(struct file *file, const char __user *buf, size
     printk("Copied %zd bytes from the user\n", maxdatalen);
     databuf[maxdatalen] = 0;
 
-	//Print the copied bytes from the user
+	  //Print the copied bytes from the user
     printk("Data from the user: %s\n", databuf);
 
     return count;
