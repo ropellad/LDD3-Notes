@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 	printf("CAN ID: %x \n", frame.can_id);
 	printf("CAN DLC: %d \n", frame.can_dlc);
 	printf("CAN DATA: \n");
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < frame.can_dlc; i++)
 	{
 		printf("%x ", frame.data[i]);
 	}
