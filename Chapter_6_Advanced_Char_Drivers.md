@@ -319,13 +319,11 @@ Don't mix a lot of different techniques in a normal driver. Stick to one (all po
 
 There are times when controlling the device is better by writing control sequences to the device itself. This is used a lot in console drivers like the setterm driver printing escape sequences. The controlling program can live anywhere, and the data stream is simply redirected to the driver. 
 
-The drawback of this strategy is that it add policy constraints to the device. Sometimes control characters can show up in "just text" sections and mess up the behovior of a program (like running cat on a binary file and all the garbage that the terminal spits out). 
+The drawback of this strategy is that it add policy constraints to the device. Sometimes control characters can show up in "just text" sections and mess up the behavior of a program (like running cat on a binary file and all the garbage that the terminal spits out). 
 
 Controlling by write is the way to go for devices that don't transfer data but just respond to commands - like a simple robot. When writing command-oriented drivers like this, ioctl makes no sense. Don't implement it. 
 
 You could also do the opposite - get rid of all interpreter write methods, use ioctl exclusively. This approach moves the complexity to user-space and keeps the driver small.
-
-# Go over the differences here ^^^
 
 ### Blocking I/O
 
@@ -820,8 +818,6 @@ The purpose of `poll` and `select` calls is to determine in advance if an I/O op
 ### The Underlying Data Structure
 
 The poll_table structure is a wrapper around a function that builds the actual data structure. For poll and select, this is a linked list of memory pages containing poll_table_entry structures. Each poll_table_entry holds the `struct file` and `wait_queue_head_t` pointers passed to poll_wait, along with an associated wait queue entry. A call to poll_wait can also sometimes add the process to the given wait queue. The structure is maintained by the kernel. 
-
-# GO OVER THE GENERAL POLLING PROCESS ABOVE (and in general how it works with blocking/nonblocking I/O)
 
 epoll is better when dealing with A LOT of file descriptors to prevent setting up and tearing down the data structure between every I/O operation. It sets up the data structure once and can use it many times. 
 
