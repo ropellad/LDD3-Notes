@@ -441,7 +441,7 @@ unsigned long copy_to_user(void __user *to, const void *from, unsigned long coun
 unsigned long copy_from_user(void *to, const void __user *from, unsigned long count);
 ```
 
-They behave like normal memcpy functions. These functions will check if the user space pointer is valid. The return value is the amount of memory still to be copied.The scull code looks for this error return, and returns -EFAULT to the user if it’s not 0. 
+They behave like normal memcpy functions. These functions will check if the user space pointer is valid. The return value is the amount of memory still to be copied. The scull code looks for this error return, and returns -EFAULT to the user if it’s not 0. 
 
 Read and write should generally update the file position at the pointer to offp to represent the current file position after successful completion of the system call. The kernel then propagates the file position change back into the file structure when appropriate.
 
@@ -577,7 +577,7 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 
 ### readv and writev
 
-These are the vector versions of the read and write calls. If your driver does not supply methods to handle the vector operations, readv and writev are implemented with multiple calls to your read and write methods. In many situations, however, greater efficiency is acheived by implementing readv and writev directly.
+These are the vector versions of the read and write calls. If your driver does not supply methods to handle the vector operations, readv and writev are implemented with multiple calls to your read and write methods. In many situations, however, greater efficiency is achieved by implementing readv and writev directly.
 
 Prototypes for each:
 
