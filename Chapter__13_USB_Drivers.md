@@ -84,8 +84,6 @@ USB endpoints are bundled up into interfaces. USB interfaces can only handle one
 
 USB interfaces can have alternate settings, meaning they have different choices for parameters of the interface. The initial state of an interface is the first setting which is numbered 0. Alternate settings can be used to control individual endpoints in different ways like reserving different amounts of bandwidth for the device. Every device that uses an isochronous endpoint uses alternate settings for the same interface. 
 
-# %% Go over this in more detail about what alternate settings actually are ^^
-
 USB interfaces can be found in the kernel with the structure `struct usb_interface`. This structure is what the USB core passes to USB drivers and is what the USB driver is in charge of controlling. Some of the most important fields of the sturcture are:
 
 - struct usb_host_interface *altsetting
@@ -98,8 +96,6 @@ USB interfaces can be found in the kernel with the structure `struct usb_interfa
   - If the USB driver bound to this interface uses the USB major number, this variable contains the minor number assigned by the USB core to the interface. This is valid only after a successful call to usb_register_dev
 
 USB drivers do not really need to be aware of the other structure fields in `struct usb_interface`. 
-
-# %% go over what the minor number is for the usb driver ^^
 
 #### Configurations
 
@@ -444,8 +440,6 @@ for (j=0; j < FRAMES_PER_DESC; j++) {
 }
 ```
 
-# %% Does this now have an initializer function in the modern day? ^^
-
 ### Submitting Urbs
 
 Now that the urb has been created and initialized, it needs to be sent to the USB core to be sent to the USB device. This is done with a call to `usb_submit_urb` with the prototype:
@@ -509,8 +503,6 @@ This is similar to last chapter with the PCI drivers with the overall process. T
 #### WHat Devices Does the Driver Support
 
 The `struct usb_device_id` provides a list of the types of USB devices supported. This list is used by the USB core to decide which driver to give a device to. Hotplug scripts determine which driver to automatically load when a device is plugged into the system.
-
-# %% Is this the same as for PCI drivers in terms of "which driver should I use?"
 
 `struct usb_device_id` is defined with fields:
 
