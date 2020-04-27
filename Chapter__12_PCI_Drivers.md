@@ -163,8 +163,6 @@ The PCI configuration space consists of 256 bytes for each device function. The 
 - Each device board is geographically addressed to retrieve its configuration registers
   - Info in these registers can perform normal I/O access without further geographic addressing
 
-# %% Go over this geographic addressing in more detail ^^
-
 Side note: PCI Express devices have 4 KB of configuration space for each function. 
 
 ### Boot Time
@@ -347,8 +345,6 @@ MODULE_DEVICE_TABLE(pci, i810_ids);
 
 The statement above creates a new local variable called `__mod_pci_device_table` that points to the list of `struct pci_device_id`. In the kernel build process, the depmod program searches all modules for the symbol `__mod_pci_device_table`. If that symbol is found, it pulls the data out of the moduleand adds it to the file /lib/modules/KERNEL_VERSION/modules.pcimap. After depmod completes, all PCI devices that are supported by modules in the kernel are listed together with their module names in that file. When the kernel tells the hotplug system that a new PCI device has been found, the hotplug system uses the modules.pcimap file to find the proper driver to load.
 
-# %% What if two modules could be a driver for a device? How does the kernel decide which driver to use?
-
 ### Registering a PCI Driver
 
 To be registered with the kernel, all PCI drivers must create the `struct pci_driver` structure. This structure has function callbacks and variables that describe the PCI driver to the PCI core. You should know about the following fields in the struct:
@@ -522,8 +518,6 @@ static unsigned char skel_get_revision(struct pci_dev *dev)
 
 A PCI device can have up to six I/O address regions. Each region can have either memory or I/O locations. Most devices implement their I/O registers in memory regions, however, unlike normal memory, I/O registers should not be cached by the CPU because each access could have negative side effects. A PCI device that implements I/O registers as a memory region marks the difference by setting a “memory-is-prefetchable” bit in its configuration register. If the memory region is marked as prefetchable, the CPU can cache its contents and do all sorts of optimization with it. Nonprefetchable memory access can’t be optimized because each access can have side effects, just as with I/O ports.
 
-# %% Why is this and what do we mean by nonprefetchable?
-
 Peripherals that map their control registers to a memory address range declare that range as nonprefetchable, whereas things like video memory on PCI boards is prefetchable.
 
 A PCI interface board reports the size and current location of its regions using configuration registers - there are six 32-bit registers whose symbolic names are PCI_BASE_ADDRESS_0 through PCI_BASE_ADDRESS_5. Since the I/O space in the standard for PCI is a 32-bit address space, it seems intuitive to use the same configuration interface for memory and I/O. If the device uses a 64-bit address bus, it can declare regions in the 64-bit memory space by using two consecutive PCI_BASE_ADDRESS registers for each region with low bits first. It is possible for one device to offer both 32-bit regions and 64-bit regions.
@@ -557,8 +551,6 @@ IORESOURCE_READONLY
 ```
 
 By using the `pci_resource_` functions, a driver can ignore the underlying PCI registers because the system already used them to structure resource info. 
-
-# %% So then how would you actually access these things with the driver?
 
 ### PCI Interrupts
 
