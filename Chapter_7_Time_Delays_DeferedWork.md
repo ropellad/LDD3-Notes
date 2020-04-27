@@ -195,7 +195,7 @@ init_waitqueue_head (&wait);
 wait_event_interruptible_timeout(wait, 0, delay);
 ```
 
-If you want to delay execution waiting for no specific event (like the code above), the kernel offers the schedule_timeout function so you don't need to bother with declaring an unneccessary queue head. The prototype is:
+If you want to delay execution waiting for no specific event (like the code above), the kernel offers the schedule_timeout function so you don't need to bother with declaring an unnecessary queue head. The prototype is:
 
 ```c
 #include <linux/sched.h>
@@ -213,7 +213,7 @@ schedule_timeout (delay);
 
 #### Short Delays
 
-When dealing with latencies in hardware, delays are usually a few dozen microseconds at most. In this case, using the clock tick is not the way to go. 
+When dealing with latency in hardware, delays are usually a few dozen microseconds at most. In this case, using the clock tick is not the way to go. 
 
 The kernel functions ndelay, udelay, and mdelay serve well for short delays, delaying execution for the specified number of nanoseconds, microseconds, or milliseconds respectively. Their prototypes are:
 
