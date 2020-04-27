@@ -54,7 +54,7 @@ When using a terminal emulator, the messages will likely not show up. Instead, i
 ### Difference Between a Kernel Module and an Application
 
 - While not all applications are event-driven, every kernal module is
-- An application can be lazy in how it is destroyed with releaseing resources, while the exit of a module must carefully undo everything from the init() function or the pieces will remain until the system is rebooted
+- An application can be lazy in how it is destroyed with releasing resources, while the exit of a module must carefully undo everything from the init() function or the pieces will remain until the system is rebooted
 - Faults are handled safely in applications, but they can easily cause a whole system crash in a kernel module
 - A module runs in kernel space, where an application runs in user space
 
@@ -91,7 +91,7 @@ printk(KERN_INFO "The process is \"%s\" (pid %i)\n",
 - Functions that start with ( __ ) are low-level and serious. Use with caution
 - Kernel code cannot do floating point arithmetic. That is a lot of extra overhead.
 
-### Compiliing Modules
+### Compiling Modules
 
 The file <i>Documentation/Changes</i> in the kernel documentation directory always lists the required tool versions to build the kernel. Make sure to obey these!
 
@@ -165,7 +165,7 @@ The following macros can be used to export symbols:
 EXPORT_SYMBOL(name);
 EXPORT_SYMBOL_GPL(name);
 ```
-The GPL version makes the symbol available to GPL-licensed modules only. This variable is stored in a special part of the module executible (an “ELF section”)that is used by the kernel at load time to find the variables exported by the module.
+The GPL version makes the symbol available to GPL-licensed modules only. This variable is stored in a special part of the module executable (an “ELF section”)that is used by the kernel at load time to find the variables exported by the module.
 
 ### Preliminaries
 
@@ -390,7 +390,7 @@ User space drivers provide the following advantages:
 1. Full C Library access
 2. You can use a conventional debugger
 3. If the driver hangs, you can kill it
-4. User memory is swappable so it will not take up as much room if infrequently used
+4. User memory is swapable so it will not take up as much room if infrequently used
 5. Can still enable concurrent access to a device
 6. Easier to write a closed-source driver (but boo closed source!)
 
