@@ -172,8 +172,6 @@ struct {
 
 Without the `__attribute__ ((packed))`, the lun field would be preceded by two filler bytes or six if we compile the structure on a 64-bit platform. 
 
-# %% I want to go over packing in a little bit more detail and how this actually happens and why we need it.
-
 ### Pointers and Error Values (I can point to errors all day long)
 
 Several internal kernel functions return a pointer value to the caller. These functions can also fail (welcome to the club). In most cases, failure is indicated by returning a NULL pointer value. While this works, it does very little to describe the actual nature of the problem. There are times when the caller needs an actual error code so that the right decision can be made as to what to do next in a program. 
@@ -243,8 +241,6 @@ LIST_HEAD(todo_list);
 Review of doubly linked lists:
 [Doubly Linked List \| Set 1 (Introduction and Insertion) - GeeksforGeeks](https://www.geeksforgeeks.org/doubly-linked-list/)
 
-# %% Go over this list head thing and why it needs to be initialized. 
-
 Several functions are defined in `<linux/list.h>` that work with lists:
 
 ```
@@ -280,8 +276,6 @@ list_splice(struct list_head *list, struct list_head *head);
 ```
 
 The `list_head` structures are good for implementing a list of like structures. However, the invoking program is usually more interested in the larger structures that make up the list as a whole. 
-
-# %% Why tho? ^^
 
 A macro called list_entry is provided that maps a list_head structure pointer back into a pointer to the structure that contains it. It is used like this:
 
