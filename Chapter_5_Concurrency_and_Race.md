@@ -78,7 +78,7 @@ DECLARE_MUTEX_LOCKED(name);
 
 The result of this is a semaphore variable called `name` that is initialized to 1 with `DECLARE_MUTEX(name);` and 0 with `DECLARE_MUTEX_LOCKED(name);`. Why even use the second case? Well - the mutex will start in a locked state and will need to be explicitly unlocked before any thread is allowed access (start with the gate closed, and you decide when to open it). 
 
-If the mutex must be intiialized dynamically at runtime, use one of the following:
+If the mutex must be initialized dynamically at runtime, use one of the following:
 
 ```c
 void init_MUTEX(struct semaphore *sem);
@@ -236,15 +236,13 @@ void complete_all(struct completion *c);
 
 The first one will wake up only one of the waiting threads. The second will wake up all waiting threads. Most of the time, there is only one process waiting, so the functions produce identical outcomes. There is another difference between them, however:
 
-A completion is normally a one-shot device. It is used once then discarded. It is possible to reuse completion structures though. If complete_all is not used, a completion structure can be reused without any problems as long as there is no ambiguity about what event is being signalled. If you use complete_all, however, you must reinitialize the completion structure before reusing it.
+A completion is normally a one-shot device. It is used once then discarded. It is possible to reuse completion structures though. If complete_all is not used, a completion structure can be reused without any problems as long as there is no ambiguity about what event is being signaled. If you use complete_all, however, you must reinitialize the completion structure before reusing it.
 
 Do quick re-initialization with this:
 
 ```c
 INIT_COMPLETION(struct completion c);
 ```
-
-# ^^^ Go over what this actually does
 
 The *complete* module included in the example source defines a device with simple semantics. Any device that attempts to read from the device will wait until some other process writes to the device. Code:
 
@@ -580,7 +578,7 @@ RCU is optimized for situations where reads are common and writes are rare (that
 - Resources being protected should be accessed via pointers
 - All references to those resources must be held only by atomic code
 - When writing, the writing thread makes a copy, changes the copy, then aims the relevant pointer at the new version.
-- When the kernel is absolutley certain that no references to the old version remain, it can be freed
+- When the kernel is absolutely certain that no references to the old version remain, it can be freed
 
 Include `<linux/rcupdate.h>` to use RCUs. Reader code will look something like this:
 
