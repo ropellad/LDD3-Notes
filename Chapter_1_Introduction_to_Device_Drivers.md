@@ -9,7 +9,7 @@ The second half of the book (chapters 12-18) describes block drivers and network
 
 ## Chapter 1. An Introduction to Device Drivers
 
-The linux kernel is a large and complex body of code. People who desire to work with the kernal need an entry point where they can approach the code without being overwhelmed. Device drivers are one good place to start exploring. 
+The Linux kernel is a large and complex body of code. People who desire to work with the kernel need an entry point where they can approach the code without being overwhelmed. Device drivers are one good place to start exploring. 
 
 Device drivers are treated like distinct "black boxes" that make a piece of hardware respond to an internal programming interface. User activities are performed with a set of standardized calls that are independent of a specific driver. Mapping these calls to device-specific operations is the job of the driver. Drivers are made such that they can be built separately from the rest of the kernal and "plugged in" at runtime when needed. This modularity is supposed to make the drivers easy to write. 
 
@@ -30,7 +30,7 @@ A programmer needs to pay attention to this distinction. Write kernel code to ac
 
 Policy-free drivers have the following characteristics:
 
-1. Support for both synchronous and asychronous operation
+1. Support for both synchronous and asynchronous operation
 2. The ability to be opened multiple times
 3. The ability to use the full capabilities of the hardware
 4. Lack of software layers to "simply things"
@@ -43,7 +43,7 @@ In real life, you should always include configuration files that apply a default
 
 ### Splitting the Kernel
 
-In a Unix-based system, several concurrent processes attend to different tasks. The kernal handles all of the requests that processes make for various system resources. The kernels role can be split into the following parts:
+In a Unix-based system, several concurrent processes attend to different tasks. The kernel handles all of the requests that processes make for various system resources. The kernels role can be split into the following parts:
 
 1. Process Management
 2. Memory Management
