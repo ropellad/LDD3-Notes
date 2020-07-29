@@ -69,8 +69,6 @@ MKDEV(int major, int minor);
 
 The format of dev_t has changed since this book was written.
 
-# DISUCSS CHANGES TO dev_t ^^^
-
 ### Allocating and Freeing Device Numbers
 
 To set up a char driver, you need to one or more device numbers to work with. The function for this is <i>register_chrdev_region</i>, declared in `<linux/fs.h>`.
@@ -604,9 +602,3 @@ Each iovec describes one chunk of data to be transferred; it starts at iov_base 
 ### Linux 5.X Char Driver
 Since I could not get scull to work, I went with another online tutorial here: 
 [Simple Linux character device driver. – Oleg Kutkov personal blog](https://olegkutkov.me/2018/03/14/simple-linux-character-device-driver/) 
-
-Questions:
-What is a quantum and quantum set?
-Review inode and ioctl
-Can I write something to the char driver, then read the same message it later?
-
