@@ -273,8 +273,6 @@ It is possible to have multiple processes reading from the device at the same ti
 void complete_and_exit(struct completion *c, long retval);
 ```
 
-# Again, `retval` could be anything. The pointer `c` is what?
-
 ### Spinlocks (You Spin Me Right Round)
 
 Semaphores are useful for mutual exclusion (mutexs), but are not the only tool provided by the kernel to do this. Most locking is actually implemented with a spinlock. Spinlocks are different than semaphores in that they can be used in code that cannot sleep like interrupt handlers. Spinlocks offer better performance in general, but they bring a different set of constraints. 
@@ -282,8 +280,6 @@ Semaphores are useful for mutual exclusion (mutexs), but are not the only tool p
 The concept of a spinlock is simple: it is a mutual exclusion device that can only have two values - "locked" and "unlocked." This is usually done with a single bit integer value. Code that wants to take out a lock tests the relevant bit. If the lock is available, the bit is set to locked and the code continues to the critical section. If the lock has been taken by somebody else, the code goes into a tiny loop and repeatedly checks the lock until it finally is available. This is the spin part of the spinlock. 
 
 Real implementation is a bit more complex, and the "test and set" operation has to be done in an atomic manner so that only one thread can obtain the lock, even if several are spinning at the same time. You must also be careful to avoid deadlocks on hyperthreaded processors where 1 core can share cache with 2 virtual processors. 
-
-# How does the spinlock mechanism avoid race conditions itself?
 
 ### Intro to Spinlock API
 
@@ -362,8 +358,6 @@ int spin_trylock_bh(spinlock_t *lock);
 ```
 
 These functions return nonzero on success, meaning the lock was obtained. They return 0 otherwise. 
-
-# Go over this ^^^ and how it is used versus the other spinlocks
 
 ### Reader/Writer Spinlocks
 
@@ -608,12 +602,3 @@ void call_rcu(struct rcu_head *head, void (*func)(void *arg), void *arg);
 ```
 
 The given `func` is called when it is safe to free the resource; it is passed to the same `arg` that was passed to `call_rcu`. Usually, `func` just calls `kfree`. The full RCU interface is more complex than this. If I ever need to use this I will probably need to do significantly more research on it. 
-
-
-
-
-
-
-
-
-
