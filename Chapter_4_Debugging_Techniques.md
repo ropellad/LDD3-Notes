@@ -465,9 +465,5 @@ This runs on a virtual machine implemented on the Linux system call interface. I
 - Dynamic Probes (DProbes) - This project looks dead. This page has some useful info: [Dynamic Probes](http://dprobes.sourceforge.net/) 
 - This page has a lot of useful debugging info: [Linux kernel live debugging, how it's done and what tools are used? - Stack Overflow](https://stackoverflow.com/questions/4943857/linux-kernel-live-debugging-how-its-done-and-what-tools-are-used) 
 
-
-Questions:
-What is a spinlock? How does it function?
-
 From Wikipedia:
 In software engineering, a spinlock is a lock which causes a thread trying to acquire it to simply wait in a loop ("spin") while repeatedly checking if the lock is available. Since the thread remains active but is not performing a useful task, the use of such a lock is a kind of busy waiting.
